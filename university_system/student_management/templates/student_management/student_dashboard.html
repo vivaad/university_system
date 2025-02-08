@@ -1,0 +1,17 @@
+{% extends 'student_management/base.html' %}
+{% block title %}Student Dashboard{% endblock %}
+{% block content %}
+<h1>Welcome, {{ user.username }}!</h1>
+<h2>Your Courses</h2>
+<ul>
+    {% for reg in registrations %}
+    <li>{{ reg.course.name }} (Registered on {{ reg.date_registered }})</li>
+    {% endfor %}
+</ul>
+<h2>Your Grades</h2>
+<ul>
+    {% for grade in grades %}
+    <li>{{ grade.course.name }}: {{ grade.grade }}</li>
+    {% endfor %}
+</ul>
+{% endblock %}
