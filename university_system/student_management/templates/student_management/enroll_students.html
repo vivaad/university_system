@@ -1,0 +1,14 @@
+<!-- filepath: /home/vivek/Documents/DBS/university_system/student_management/templates/student_management/enroll_student.html -->
+{% extends 'student_management/base.html' %}
+
+{% block title %}Enroll Student{% endblock %}
+
+{% block content %}
+<h2>Enroll Student</h2>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Enroll</button>
+</form>
+{% endblock %}

@@ -1,17 +1,45 @@
+<!-- filepath: /home/vivek/Documents/DBS/university_system/student_management/templates/student_management/student_dashboard.html -->
 {% extends 'student_management/base.html' %}
+
 {% block title %}Student Dashboard{% endblock %}
+
 {% block content %}
-<h1>Welcome, {{ user.username }}!</h1>
-<h2>Your Courses</h2>
+<h2>Student Dashboard</h2>
+<p>Welcome, {{ user.username }}!</p>
+
+<h3>Your Registrations</h3>
 <ul>
-    {% for reg in registrations %}
-    <li>{{ reg.course.name }} (Registered on {{ reg.date_registered }})</li>
-    {% endfor %}
+  {% for registration in registrations %}
+    <li>{{ registration.course.name }}</li>
+  {% empty %}
+    <li>No course registrations found.</li>
+  {% endfor %}
 </ul>
-<h2>Your Grades</h2>
+
+<h3>Your Grades</h3>
 <ul>
-    {% for grade in grades %}
-    <li>{{ grade.course.name }}: {{ grade.grade }}</li>
-    {% endfor %}
+  {% for grade in grades %}
+    <li>{{ grade.course.name }}: {{ grade.value }}</li>
+  {% empty %}
+    <li>No grades recorded.</li>
+  {% endfor %}
 </ul>
+
+<h3>Grade Chart</h3>
+<canvas id="gradeChart"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    var ctx = document.getElementById('gradeChart').getContext('2d');
+    var gradeChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ labels|safe }},
+            datasets: [{
+                label: 'Grades',
+                data: {{ values|safe }},
+                backgroundColor: 'rgba(54, 162, 235, 0.6)'
+            }]
+        }
+    });
+</script>
 {% endblock %}

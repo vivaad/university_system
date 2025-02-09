@@ -30,11 +30,18 @@ class Registration(models.Model):
 class Grade(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    grade = models.CharField(max_length=2)
+    grade = models.CharField(max_length=2)  
 
     class Meta:
         unique_together = ('student', 'course')
 
+class DataPoint(models.Model):
+    value = models.FloatField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.value} at {self.timestamp}"
+    
 
 @receiver(post_save, sender=User)
 def create_profile(sender, instance, created, **kwargs):
