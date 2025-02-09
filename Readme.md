@@ -12,7 +12,7 @@ A Django-based university management system for handling student records, course
 
 1. Clone the repository
 ```bash
-git clone https://github.com/vivek0824/university_system.git
+git clone https://github.com/vivaad/university_system.git
 cd university_system
 ```
 
