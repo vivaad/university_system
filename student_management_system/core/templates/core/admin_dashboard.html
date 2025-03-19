@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <header>
+        <h1>Welcome to the Admin Dashboard</h1>
+        <nav>
+            <ul>
+                <li><a href="{% url 'logout' %}">Logout</a></li>
+                <li><a href="{% url 'register' %}">Register New Admin/Student</a></li>
+                <li><a href="{% url 'manage_courses' %}">Manage Courses</a></li>
+                <li><a href="{% url 'view_students' %}">View Students</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section>
+            <h2>Admin Actions</h2>
+            <p>Use the links above to manage students and courses.</p>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; {{ current_year }} Student Management System</p>
+    </footer>
+</body>
+</html>
