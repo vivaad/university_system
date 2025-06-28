@@ -6,108 +6,59 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 import uuid
 
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
+
 class User(AbstractUser):
-    """Enhanced User model with role-based access"""
-    USER_TYPES = (
-        ('admin', 'Administrator'),
-        ('teacher', 'Teacher'),
-        ('student', 'Student'),
+    ADMIN = 'admin'
+    TEACHER = 'teacher'
+    STUDENT = 'student'
+    
+    ROLE_CHOICES = (
+        (ADMIN, 'Administrator'),
+        (TEACHER, 'Teacher'),
+        (STUDENT, 'Student'),
     )
     
-    user_type = models.CharField(max_length=10, choices=USER_TYPES, default='student')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=STUDENT)
     phone = models.CharField(max_length=15, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     date_of_birth = models.DateField(blank=True, null=True)
-    profile_picture = models.ImageField(upload_to='profiles/', blank=True, null=True)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.username} ({self.get_user_type_display()})"
 
 class Department(models.Model):
-    """Department model for organizing courses"""
     name = models.CharField(max_length=100, unique=True)
     code = models.CharField(max_length=10, unique=True)
-    description = models.TextField(blank=True)
-    head_of_department = models.ForeignKey(
-        User, 
-        on_delete=models.SET_NULL, 
-        null=True, 
+    head = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
-        limit_choices_to={'user_type': 'teacher'}
+        limit_choices_to={'role': User.TEACHER}
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.code} - {self.name}"
-
-    class Meta:
-        ordering = ['name']
 
 class Course(models.Model):
-    """Enhanced Course model"""
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=20, unique=True)
-    description = models.TextField(blank=True)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
     credits = models.PositiveIntegerField(default=3)
-    semester = models.PositiveIntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(8)]
-    )
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return f"{self.code} - {self.name}"
-
-    class Meta:
-        ordering = ['code']
-
-class TeacherProfile(models.Model):
-    """Extended profile for teachers"""
-    user = models.OneToOneField(User, on_delete=models.CASCADE, limit_choices_to={'user_type': 'teacher'})
-    employee_id = models.CharField(max_length=20, unique=True)
-    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True)
-    designation = models.CharField(max_length=100)
-    qualification = models.CharField(max_length=200)
-    experience_years = models.PositiveIntegerField(default=0)
-    specialization = models.TextField(blank=True)
-    salary = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    join_date = models.DateField()
-
-    def __str__(self):
-        return f"Prof. {self.user.get_full_name()} ({self.employee_id})"
-
-class StudentProfile(models.Model):
-    """Extended profile for students"""
-    YEAR_CHOICES = (
-        (1, 'First Year'),
-        (2, 'Second Year'),
-        (3, 'Third Year'),
-        (4, 'Fourth Year'),
-    )
-
-    user = models.OneToOneField(User, on_delete=models.CASCADE, limit_choices_to={'user_type': 'student'})
+class Student(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, limit_choices_to={'role': User.STUDENT})
     student_id = models.CharField(max_length=20, unique=True)
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True)
-    year = models.PositiveIntegerField(choices=YEAR_CHOICES)
-    semester = models.PositiveIntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(8)]
-    )
     gpa = models.DecimalField(max_digits=4, decimal_places=2, default=0.00)
-    enrollment_date = models.DateField()
-    parent_name = models.CharField(max_length=100, blank=True)
-    parent_phone = models.CharField(max_length=15, blank=True)
-    emergency_contact = models.CharField(max_length=15, blank=True)
 
-    def __str__(self):
-        return f"{self.user.get_full_name()} ({self.student_id})"
+class TeacherProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, limit_choices_to={'role': User.TEACHER})
+    employee_id = models.CharField(max_length=20, unique=True)
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True)
 
-class CourseEnrollment(models.Model):
+
+class Enrollment(models.Model):
     """Student course enrollment"""
-    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     teacher = models.ForeignKey(TeacherProfile, on_delete=models.CASCADE)
     enrolled_date = models.DateTimeField(auto_now_add=True)
@@ -144,7 +95,7 @@ class Assignment(models.Model):
 
 class Grade(models.Model):
     """Student grades with automatic calculation"""
-    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
     marks_obtained = models.DecimalField(max_digits=5, decimal_places=2)
     feedback = models.TextField(blank=True, null=True)
@@ -210,7 +161,7 @@ class Announcement(models.Model):
 
 class Attendance(models.Model):
     """Attendance tracking"""
-    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     date = models.DateField()
     is_present = models.BooleanField(default=False)
@@ -248,7 +199,7 @@ def create_user_profile(sender, instance, created, **kwargs):
                 designation="Assistant Professor"
             )
         elif instance.user_type == 'student':
-            StudentProfile.objects.create(
+            Student.objects.create(
                 user=instance,
                 student_id=f"STU_{instance.id:06d}",
                 enrollment_date=timezone.now().date(),

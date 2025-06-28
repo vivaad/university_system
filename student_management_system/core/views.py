@@ -53,7 +53,7 @@ def admin_dashboard(request):
         'total_teachers': User.objects.filter(user_type='teacher').count(),
         'total_courses': Course.objects.count(),
         'total_departments': Department.objects.count(),
-        'recent_enrollments': CourseEnrollment.objects.select_related('student__user', 'course').order_by('-enrolled_date')[:5],
+        'recent_enrollments': Enrollment.objects.select_related('student__user', 'course').order_by('-enrolled_date')[:5],
         'recent_announcements': Announcement.objects.order_by('-created_at')[:5],
     }
     return render(request, 'admin/dashboard.html', stats)
@@ -63,7 +63,7 @@ def admin_dashboard(request):
 def teacher_dashboard(request):
     teacher_profile = get_object_or_404(TeacherProfile, user=request.user)
     
-    enrollments = CourseEnrollment.objects.filter(teacher=teacher_profile).select_related('course', 'student__user')
+    enrollments = Enrollment.objects.filter(teacher=teacher_profile).select_related('course', 'student__user')
     courses = Course.objects.filter(courseenrollment__teacher=teacher_profile).distinct()
     
     stats = {
@@ -80,7 +80,7 @@ def teacher_dashboard(request):
 def student_dashboard(request):
     student_profile = get_object_or_404(StudentProfile, user=request.user)
     
-    enrollments = CourseEnrollment.objects.filter(student=student_profile).select_related('course', 'teacher__user')
+    enrollments = Enrollment.objects.filter(student=student_profile).select_related('course', 'teacher__user')
     grades = Grade.objects.filter(student=student_profile).select_related('assignment__course')
     
     # Calculate GPA
@@ -129,7 +129,7 @@ def grade_management(request):
         return redirect('grade_management')
     
     assignments = Assignment.objects.filter(teacher=teacher_profile, is_active=True)
-    enrollments = CourseEnrollment.objects.filter(teacher=teacher_profile).select_related('student__user', 'course')
+    enrollments = Enrollment.objects.filter(teacher=teacher_profile).select_related('student__user', 'course')
     
     return render(request, 'teacher/grade_management.html', {
         'assignments': assignments,
@@ -146,10 +146,10 @@ def course_enrollment(request):
         course_id = request.POST.get('course_id')
         course = get_object_or_404(Course, id=course_id)
         
-        if not CourseEnrollment.objects.filter(student=student_profile, course=course).exists():
+        if not Enrollment.objects.filter(student=student_profile, course=course).exists():
             teacher = TeacherProfile.objects.filter(department=course.department).first()
             if teacher:
-                CourseEnrollment.objects.create(
+                Enrollment.objects.create(
                     student=student_profile,
                     course=course,
                     teacher=teacher
@@ -170,7 +170,7 @@ def course_enrollment(request):
         courseenrollment__student=student_profile
     )
     
-    enrolled_courses = CourseEnrollment.objects.filter(
+    enrolled_courses = Enrollment.objects.filter(
         student=student_profile,
         is_active=True
     ).select_related('course', 'teacher__user')
