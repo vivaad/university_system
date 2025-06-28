@@ -6,8 +6,8 @@ from django.http import JsonResponse
 from django.db.models import Avg, Count, Q
 from django.core.paginator import Paginator
 from django.utils import timezone
-from .models import *
-from .forms import *
+from .models import User, Department, Course, StudentProfile, TeacherProfile, Enrollment, Grade, Announcement, Assignment
+from .forms import GradeForm, AnnouncementForm, CourseForm
 
 # Authentication Views
 def login_view(request):
@@ -17,7 +17,7 @@ def login_view(request):
         user_type = request.POST.get('user_type')
         
         user = authenticate(username=username, password=password)
-        if user and user.user_type == user_type:
+        if user and user.role == user_type:
             login(request, user)
             return redirect(f'{user_type}_dashboard')
         else:
@@ -36,21 +36,21 @@ def student_login(request):
 
 # Role-based test functions
 def is_admin(user):
-    return user.is_authenticated and user.user_type == 'admin'
+    return user.is_authenticated and user.role == User.ADMIN
 
 def is_teacher(user):
-    return user.is_authenticated and user.user_type == 'teacher'
+    return user.is_authenticated and user.role == User.TEACHER
 
 def is_student(user):
-    return user.is_authenticated and user.user_type == 'student'
+    return user.is_authenticated and user.role == User.STUDENT
 
 # Dashboard Views
 @login_required
 @user_passes_test(is_admin)
 def admin_dashboard(request):
     stats = {
-        'total_students': User.objects.filter(user_type='student').count(),
-        'total_teachers': User.objects.filter(user_type='teacher').count(),
+        'total_students': User.objects.filter(role=User.STUDENT).count(),
+        'total_teachers': User.objects.filter(role=User.TEACHER).count(),
         'total_courses': Course.objects.count(),
         'total_departments': Department.objects.count(),
         'recent_enrollments': Enrollment.objects.select_related('student__user', 'course').order_by('-enrolled_date')[:5],
@@ -64,7 +64,7 @@ def teacher_dashboard(request):
     teacher_profile = get_object_or_404(TeacherProfile, user=request.user)
     
     enrollments = Enrollment.objects.filter(teacher=teacher_profile).select_related('course', 'student__user')
-    courses = Course.objects.filter(courseenrollment__teacher=teacher_profile).distinct()
+    courses = Course.objects.filter(enrollment__teacher=teacher_profile).distinct()
     
     stats = {
         'total_courses': courses.count(),
@@ -167,7 +167,7 @@ def course_enrollment(request):
         semester=student_profile.semester,
         is_active=True
     ).exclude(
-        courseenrollment__student=student_profile
+        enrollment__student=student_profile
     )
     
     enrolled_courses = Enrollment.objects.filter(
@@ -183,12 +183,12 @@ def course_enrollment(request):
 # Announcements
 @login_required
 def announcements(request):
-    if request.user.user_type == 'student':
+    if request.user.role == User.STUDENT:
         announcements = Announcement.objects.filter(
             Q(target_audience='all') | Q(target_audience='students'),
             is_active=True
         ).order_by('-created_at')
-    elif request.user.user_type == 'teacher':
+    elif request.user.role == User.TEACHER:
         announcements = Announcement.objects.filter(
             Q(target_audience='all') | Q(target_audience='teachers'),
             is_active=True
@@ -199,25 +199,20 @@ def announcements(request):
     return render(request, 'announcements.html', {'announcements': announcements})
 
 @login_required
-@user_passes_test(lambda u: u.user_type in ['admin', 'teacher'])
+@user_passes_test(lambda u: u.role in [User.ADMIN, User.TEACHER])
 def create_announcement(request):
     if request.method == 'POST':
-        title = request.POST.get('title')
-        content = request.POST.get('content')
-        priority = request.POST.get('priority')
-        target_audience = request.POST.get('target_audience')
-        
-        Announcement.objects.create(
-            title=title,
-            content=content,
-            author=request.user,
-            priority=priority,
-            target_audience=target_audience
-        )
-        messages.success(request, 'Announcement created successfully!')
-        return redirect('announcements')
+        form = AnnouncementForm(request.POST)
+        if form.is_valid():
+            announcement = form.save(commit=False)
+            announcement.author = request.user
+            announcement.save()
+            messages.success(request, 'Announcement created successfully!')
+            return redirect('announcements')
+    else:
+        form = AnnouncementForm()
     
-    return render(request, 'create_announcement.html')
+    return render(request, 'create_announcement.html', {'form': form})
 
 @login_required
 def logout_view(request):
