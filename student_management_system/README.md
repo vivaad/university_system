@@ -30,13 +30,6 @@ student_management_system/
 │   ├── views.py
 │   ├── urls.py
 │   └── templates/
-│       └── core/
-│           ├── home.html
-│           ├── login.html
-│           ├── admin_dashboard.html
-│           ├── student_dashboard.html
-│           ├── register.html
-│           └── logout.html
 └── README.md
 ```
 
